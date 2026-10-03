@@ -1,4 +1,3 @@
-
 import os
 import re
 import queue
@@ -14,11 +13,6 @@ from urllib.parse import urlencode
 import speech_recognition as sr
 import pyttsx3
 import ollama
-
-
-# ==========================================================
-# CONFIGURAÇÕES
-# ==========================================================
 
 NOME = "J.A.R.V.I.S"
 MODELO_IA = "qwen3:4b"
@@ -40,11 +34,6 @@ reconhecedor = sr.Recognizer()
 
 escutando = True
 janela_minimizada = False
-
-
-# ==========================================================
-# PROGRAMAS E PASTAS
-# ==========================================================
 
 APLICATIVOS = {
     "calculadora": "calc.exe",
@@ -73,11 +62,6 @@ PASTAS = {
     "desktop": "Desktop",
 }
 
-
-# ==========================================================
-# NORMALIZAÇÃO DE TEXTO
-# ==========================================================
-
 def normalizar(texto):
     texto = texto.lower().strip()
     texto = unicodedata.normalize("NFD", texto)
@@ -87,11 +71,6 @@ def normalizar(texto):
     )
     texto = re.sub(r"\s+", " ", texto)
     return texto
-
-
-# ==========================================================
-# INTERFACE
-# ==========================================================
 
 def adicionar_log(remetente, mensagem):
     horario = datetime.now().strftime("%H:%M:%S")
@@ -103,7 +82,6 @@ def adicionar_log(remetente, mensagem):
     caixa_log.configure(state="disabled")
     caixa_log.see(tk.END)
 
-
 def atualizar_interface():
     try:
         while True:
@@ -114,10 +92,8 @@ def atualizar_interface():
 
     janela.after(100, atualizar_interface)
 
-
 def minimizar_janela():
     janela.iconify()
-
 
 def enviar_mensagem(event=None):
     mensagem = entrada.get().strip()
@@ -134,23 +110,16 @@ def enviar_mensagem(event=None):
         daemon=True
     ).start()
 
-
 def ao_fechar():
     global escutando
     escutando = False
     janela.destroy()
-
-
-# ==========================================================
-# VOZ
-# ==========================================================
 
 def trabalhador_voz():
     motor = pyttsx3.init()
     motor.setProperty("rate", 175)
     motor.setProperty("volume", 1.0)
 
-    # Tenta selecionar uma voz em português.
     try:
         vozes = motor.getProperty("voices")
 
@@ -187,15 +156,9 @@ def trabalhador_voz():
         except Exception as erro:
             eventos.put(("Sistema", f"Erro na voz: {erro}"))
 
-
 def falar(mensagem):
     eventos.put((NOME, mensagem))
     fila_voz.put(mensagem)
-
-
-# ==========================================================
-# ABRIR PROGRAMAS E PASTAS
-# ==========================================================
 
 def abrir_aplicativo(nome):
     nome = normalizar(nome)
@@ -210,7 +173,6 @@ def abrir_aplicativo(nome):
             return True
 
     return False
-
 
 def abrir_pasta(nome):
     nome = normalizar(nome)
@@ -235,7 +197,6 @@ def abrir_pasta(nome):
 
     return False
 
-
 def abrir_site(nome):
     nome = normalizar(nome)
 
@@ -255,11 +216,6 @@ def abrir_site(nome):
 
     return False
 
-
-# ==========================================================
-# PESQUISA NA INTERNET
-# ==========================================================
-
 def pesquisar_google(termo):
     termo = termo.strip()
 
@@ -273,11 +229,6 @@ def pesquisar_google(termo):
 
     webbrowser.open(url)
     falar(f"Pesquisando por {termo}.")
-
-
-# ==========================================================
-# INTELIGÊNCIA ARTIFICIAL LOCAL
-# ==========================================================
 
 def perguntar_ia(pergunta):
     try:
@@ -321,11 +272,6 @@ def perguntar_ia(pergunta):
             f"{MODELO_IA} está instalado. Detalhes: {erro}"
         )
 
-
-# ==========================================================
-# INTERPRETAÇÃO DOS COMANDOS
-# ==========================================================
-
 def remover_palavra_inicial(texto, palavras):
     texto_normalizado = normalizar(texto)
 
@@ -340,7 +286,6 @@ def remover_palavra_inicial(texto, palavras):
 
     return texto.strip()
 
-
 def processar_comando(comando):
     comando_original = comando.strip()
     comando_limpo = normalizar(comando_original)
@@ -348,7 +293,6 @@ def processar_comando(comando):
     if not comando_limpo:
         return
 
-    # Comandos de encerramento
     if comando_limpo in [
         "sair",
         "fechar jarvis",
@@ -358,7 +302,6 @@ def processar_comando(comando):
         falar("Até logo.")
         return
 
-    # Hora
     if comando_limpo in [
         "que horas sao",
         "diga as horas",
@@ -368,7 +311,6 @@ def processar_comando(comando):
         falar(f"Agora são {hora}.")
         return
 
-    # Data
     if comando_limpo in [
         "que dia e hoje",
         "qual a data",
@@ -378,7 +320,6 @@ def processar_comando(comando):
         falar(f"Hoje é {data}.")
         return
 
-    # Minimizar janela
     if comando_limpo in [
         "minimizar",
         "minimizar janela",
@@ -388,7 +329,6 @@ def processar_comando(comando):
         falar("Minimizando a janela.")
         return
 
-    # Abrir aplicativo ou pasta
     comandos_abrir = [
         "abrir",
         "abra",
@@ -426,7 +366,6 @@ def processar_comando(comando):
             "Vou tentar entender seu pedido."
         )
 
-    # Pesquisa no Google
     comandos_pesquisa = [
         "pesquisar por",
         "pesquise por",
@@ -447,14 +386,8 @@ def processar_comando(comando):
         pesquisar_google(termo)
         return
 
-    # Pergunta à IA local
     resposta = perguntar_ia(comando_original)
     falar(resposta)
-
-
-# ==========================================================
-# RECONHECIMENTO DE VOZ
-# ==========================================================
 
 def callback_microfone(reconhecedor, audio):
     if not escutando:
@@ -498,7 +431,6 @@ def callback_microfone(reconhecedor, audio):
     except Exception as erro:
         eventos.put(("Sistema", f"Erro no microfone: {erro}"))
 
-
 def iniciar_microfone():
     global escutando
 
@@ -537,11 +469,6 @@ def iniciar_microfone():
             "Não consegui iniciar o microfone. "
             f"Verifique o dispositivo e o PyAudio. Detalhes: {erro}"
         ))
-
-
-# ==========================================================
-# INTERFACE GRÁFICA
-# ==========================================================
 
 janela = tk.Tk()
 janela.title("J.A.R.V.I.S | Assistente")
@@ -586,7 +513,7 @@ corpo.pack(fill="both", expand=True)
 
 status = tk.Label(
     corpo,
-    text="● SISTEMA INICIALIZANDO",
+    text="SISTEMA INICIALIZANDO",
     font=("Segoe UI", 10, "bold"),
     fg=COR_DESTAQUE,
     bg=COR_FUNDO,
@@ -687,11 +614,6 @@ botao_minimizar = tk.Button(
 )
 botao_minimizar.pack(side="right")
 
-
-# ==========================================================
-# INICIALIZAÇÃO
-# ==========================================================
-
 def iniciar_sistema():
     adicionar_log(
         "Sistema",
@@ -716,8 +638,7 @@ def iniciar_sistema():
         daemon=True
     ).start()
 
-    status.configure(text="● SISTEMA ONLINE")
-
+    status.configure(text="SISTEMA ONLINE")
 
 janela.after(500, iniciar_sistema)
 janela.after(100, atualizar_interface)
