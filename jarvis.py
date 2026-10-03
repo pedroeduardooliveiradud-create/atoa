@@ -5,6 +5,8 @@ import threading
 import subprocess
 import webbrowser
 import unicodedata
+import tempfile
+import requests
 import tkinter as tk
 from tkinter import scrolledtext
 from datetime import datetime
@@ -614,7 +616,58 @@ botao_minimizar = tk.Button(
 )
 botao_minimizar.pack(side="right")
 
-def iniciar_sistema():
+def atualizar_status_interface(mensagem):
+    eventos.put(("Sistema", mensagem))
+    janela.after(0, lambda: status.configure(text=mensagem))
+
+def verificar_e_baixar_modelo():
+    try:
+        atualizar_status_interface("VERIFICANDO MODELO DE IA")
+        modelos = [m['name'] for m in ollama.list()['models']]
+        
+        if not any(MODELO_IA in m for m in modelos):
+            atualizar_status_interface(f"BAIXANDO MODELO {MODELO_IA} (AGUARDE)")
+            subprocess.run(["ollama", "pull", MODELO_IA], check=True)
+            atualizar_status_interface("MODELO BAIXADO COM SUCESSO")
+        else:
+            atualizar_status_interface("MODELO DE IA PRONTO")
+            
+    except Exception as erro:
+        atualizar_status_interface(f"ERRO AO BAIXAR MODELO: {erro}")
+
+def instalar_ollama_automaticamente():
+    try:
+        atualizar_status_interface("VERIFICANDO OLLAMA NO SISTEMA")
+        try:
+            ollama.list()
+            atualizar_status_interface("OLLAMA JA ESTA ATIVO")
+            verificar_e_baixar_modelo()
+            finalizar_inicializacao()
+            return
+        except Exception:
+            pass
+
+        atualizar_status_interface("BAIXANDO O OLLAMA (AGUARDE)")
+        url_instalador = "https://ollama.com/download/OllamaSetup.exe"
+        caminho_temp = os.path.join(tempfile.gettempdir(), "OllamaSetup.exe")
+        
+        resposta = requests.get(url_instalador, stream=True)
+        with open(caminho_temp, "wb") as f:
+            for bloco in resposta.iter_content(chunk_size=1024):
+                if bloco:
+                    f.write(bloco)
+        
+        atualizar_status_interface("INSTALANDO O OLLAMA EM SEGUNDO PLANO")
+        subprocess.run([caminho_temp, "/VERYSILENT", "/NORESTART"], check=True)
+        
+        atualizar_status_interface("OLLAMA INSTALADO COM SUCESSO")
+        verificar_e_baixar_modelo()
+        finalizar_inicializacao()
+
+    except Exception as erro:
+        atualizar_status_interface(f"ERRO NA INSTALACAO DO OLLAMA: {erro}")
+
+def finalizar_inicializacao():
     adicionar_log(
         "Sistema",
         "J.A.R.V.I.S iniciado."
@@ -638,7 +691,18 @@ def iniciar_sistema():
         daemon=True
     ).start()
 
-    status.configure(text="SISTEMA ONLINE")
+    atualizar_status_interface("SISTEMA ONLINE")
+
+def iniciar_sistema():
+    adicionar_log(
+        "Sistema",
+        "Iniciando verificação de dependências..."
+    )
+
+    threading.Thread(
+        target=instalar_ollama_automaticamente,
+        daemon=True
+    ).start()
 
 janela.after(500, iniciar_sistema)
 janela.after(100, atualizar_interface)
