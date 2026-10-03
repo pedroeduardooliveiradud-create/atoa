@@ -1,6 +1,7 @@
 import os
 import re
 import queue
+import time
 import threading
 import subprocess
 import webbrowser
@@ -623,8 +624,20 @@ def atualizar_status_interface(mensagem):
 def verificar_e_baixar_modelo():
     try:
         atualizar_status_interface("VERIFICANDO MODELO DE IA")
-        modelos = [m['name'] for m in ollama.list()['models']]
         
+        conectado = False
+        for _ in range(15):
+            try:
+                modelos = [m['name'] for m in ollama.list()['models']]
+                conectado = True
+                break
+            except Exception:
+                time.sleep(2)
+        
+        if not conectado:
+            atualizar_status_interface("ERRO: OLLAMA NAO RESPONDE")
+            return
+
         if not any(MODELO_IA in m for m in modelos):
             atualizar_status_interface(f"BAIXANDO MODELO {MODELO_IA} (AGUARDE)")
             subprocess.run(["ollama", "pull", MODELO_IA], check=True)
@@ -660,7 +673,9 @@ def instalar_ollama_automaticamente():
         atualizar_status_interface("INSTALANDO O OLLAMA EM SEGUNDO PLANO")
         subprocess.run([caminho_temp, "/VERYSILENT", "/NORESTART"], check=True)
         
-        atualizar_status_interface("OLLAMA INSTALADO COM SUCESSO")
+        atualizar_status_interface("AGUARDANDO OLLAMA INICIALIZAR")
+        time.sleep(5)
+        
         verificar_e_baixar_modelo()
         finalizar_inicializacao()
 
